@@ -99,13 +99,13 @@ def register():
 
     pwd_hash = generate_password_hash(password)
     now = int(time.time())
+    user_id = str(uuid.uuid4())
 
     cursor.execute('''
-    INSERT INTO users (name, email, phone, password_hash, role, ward, consumer_number, points, level, created_at)
-    VALUES (?, ?, ?, ?, 'citizen', ?, ?, 100, 1, ?)
-    ''', (name, email, phone, pwd_hash, ward, consumer_no, now))
+    INSERT INTO users (id, name, email, phone, password_hash, role, ward, consumer_number, points, level, created_at)
+    VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, 100, 1, ?)
+    ''', (user_id, name, email, phone, pwd_hash, ward, consumer_no, now))
     conn.commit()
-    user_id = cursor.lastrowid
     conn.close()
 
     access_token, refresh_token = generate_tokens(user_id, 'citizen', phone)
@@ -470,7 +470,7 @@ def chat():
             reply = "सोलापूर शहर के अधिकांश वार्डों में जलापूर्ति सुबह ०६:०० से ०८:३० के बीच होती है। अपने वार्ड का सटीक समय 'Water Supply' विकल्प में देखें।"
         else:
             reply = "Regular water supply across Solapur wards runs from 06:00 AM to 08:30 AM daily or alternate days. Check the 'Water Supply Schedule' tab for your ward."
-    elif 'leak' in lower or 'complaint' in lower or 'गळती' in lower or 'तक्रार' in lower or 'शिकायत' in lower:
+    elif 'leak' in lower or 'complaint' in lower or 'गळती' in lower or 'तक्रार' in lower or 'शिकायत' in lower or 'लीकेज' in lower or 'रिसाव' in lower:
         if lang == 'mr':
             reply = "आपण त्वरित 'Report Issue' पर्यायावर जाऊन पाईप गळतीचा फोटो व जीपीएस लोकेशनसह तक्रार नोंदवू शकता. तक्रार नोंदवल्यास आपल्याला २५ रिवॉर्ड पॉईंट्स मिळतील!"
         elif lang == 'hi':

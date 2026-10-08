@@ -2,6 +2,7 @@ import os
 import json
 import time
 import uuid
+import sqlite3
 from werkzeug.security import generate_password_hash
 from database import get_db, init_db
 
@@ -17,9 +18,9 @@ def seed_database():
     cursor.execute("SELECT id FROM users WHERE phone = ?", ('9876543210',))
     if not cursor.fetchone():
         cursor.execute('''
-        INSERT INTO users (name, email, phone, password_hash, role, ward, consumer_number, points, level, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', ('SMC Water Admin', 'admin@smc.gov.in', '9876543210', admin_hash, 'admin', 'Central Solapur', 'ADMIN-001', 9999, 10, int(time.time())))
+        INSERT INTO users (id, name, email, phone, password_hash, role, ward, consumer_number, points, level, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', ('USR-ADMIN-001', 'SMC Water Admin', 'admin@smc.gov.in', '9876543210', admin_hash, 'admin', 'Central Solapur', 'ADMIN-001', 9999, 10, int(time.time())))
         print("Admin user seeded: 9876543210")
 
     # Sample Citizen
@@ -27,9 +28,9 @@ def seed_database():
     cursor.execute("SELECT id FROM users WHERE phone = ?", ('9890123456',))
     if not cursor.fetchone():
         cursor.execute('''
-        INSERT INTO users (name, email, phone, password_hash, role, ward, consumer_number, points, level, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', ('Aniket Joshi', 'aniket.solapur@gmail.com', '9890123456', citizen_hash, 'citizen', 'Ward 4 (Bhavani Peth)', 'SLP-W4-8842', 340, 3, int(time.time())))
+        INSERT INTO users (id, name, email, phone, password_hash, role, ward, consumer_number, points, level, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', ('USR-CITIZEN-001', 'Aniket Joshi', 'aniket.solapur@gmail.com', '9890123456', citizen_hash, 'citizen', 'Ward 4 (Bhavani Peth)', 'SLP-W4-8842', 340, 3, int(time.time())))
         print("Sample citizen seeded: 9890123456")
 
     # 2. Seed Wards / Supply Schedules
@@ -59,9 +60,9 @@ def seed_database():
         cursor.execute("SELECT id FROM alerts WHERE id = ?", (a[0],))
         if not cursor.fetchone():
             cursor.execute('''
-            INSERT INTO alerts (id, title, description, type, ward, issued_by, timestamp, active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', a)
+            INSERT INTO alerts (id, title, message, description, severity, type, ward_number, ward, issued_by, created_at, timestamp, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (a[0], a[1], a[2], a[2], a[3], a[3], 1, a[4], a[5], a[6], a[6], a[7]))
 
     # 4. Seed Rewards Catalog
     rewards = [
@@ -80,10 +81,10 @@ def seed_database():
             ''', r)
 
     # 5. Seed Sample Properties (Housing, Hotel, Industry)
-    cursor.execute("SELECT id FROM users WHERE phone = ?", ('9890123456',))
-    citizen = cursor.fetchone()
-    if citizen:
-        cid = citizen['id']
+    cursor.execute("SELECT id FROM users WHERE phone = '9890123456'")
+    citizen_row = cursor.fetchone()
+    cid = citizen_row[0] if citizen_row and citizen_row[0] is not None else 1
+    if cid:
         sample_props = [
             (
                 'PROP-HSG-01', cid, 'housing', 'Shree Siddheshwar Co-op Housing Society',
@@ -134,14 +135,14 @@ def seed_database():
             cursor.execute("SELECT id FROM properties WHERE id = ?", (p[0],))
             if not cursor.fetchone():
                 cursor.execute('''
-                INSERT INTO properties (id, user_id, property_type, name, address, ward, metadata, usage_history, bills, requests, documents, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', p)
+                INSERT INTO properties (id, user_id, property_type, name, address, ward, ward_number, consumer_number, metadata, details_json, usage_history, bills, requests, documents, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (p[0], p[1], p[2], p[3], p[4], p[5], 1, f"MTR-{p[0]}", p[6], p[6], p[7], p[8], p[9], p[10], p[11], p[12]))
 
     # 6. Seed Sample Complaints with Full Status History
     complaints = [
         (
-            'CMP-2026-8801', 2 if citizen else 1, 'Pipe Leakage', 'Major drinking water pipeline burst near Ashok Chowk bus stop. Water overflowing on main road.',
+            'CMP-2026-8801', cid, 'Pipe Leakage', 'Major drinking water pipeline burst near Ashok Chowk bus stop. Water overflowing on main road.',
             'Ward 1 (Ashok Chowk)', 'Near Bus Stop, Ashok Chowk, Solapur', 17.6635, 75.9120, 'inProgress', 'high',
             'Er. Ramesh Patil (SMC Ward 1)', 'Repair crew dispatched with excavator. Expected resolution in 3 hours.',
             json.dumps([{'url': '/uploads/sample_leak.jpg', 'name': 'leak_photo.jpg', 'type': 'image/jpeg', 'size': 142000}]),
@@ -152,7 +153,7 @@ def seed_database():
             int(time.time()) - 7200, int(time.time()) - 3600
         ),
         (
-            'CMP-2026-8802', 2 if citizen else 1, 'Water Contamination', 'Yellowish water with mild odor observed in morning supply in Bhavani Peth area.',
+            'CMP-2026-8802', cid, 'Water Contamination', 'Yellowish water with mild odor observed in morning supply in Bhavani Peth area.',
             'Ward 4 (Bhavani Peth)', 'Lane 3, Bhavani Peth', 17.6570, 75.9010, 'pending', 'high',
             None, None,
             json.dumps([]),
@@ -165,9 +166,9 @@ def seed_database():
         cursor.execute("SELECT id FROM complaints WHERE id = ?", (c[0],))
         if not cursor.fetchone():
             cursor.execute('''
-            INSERT INTO complaints (id, user_id, category, description, ward, address, latitude, longitude, status, priority, assigned_officer, officer_note, attachments, timeline, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', c)
+            INSERT INTO complaints (id, user_id, user_name, user_phone, title, category, description, ward_number, ward, address, latitude, longitude, status, priority, officer_assigned, assigned_officer, admin_notes, officer_note, attachments, timeline, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (c[0], c[1], 'Citizen', '9890123456', c[2], c[2], c[3], 1, c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[10], c[11], c[11], c[12], c[13], c[14], c[15]))
 
     conn.commit()
     conn.close()

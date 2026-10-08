@@ -148,9 +148,41 @@ def init_db():
     )
     ''')
 
+    # Safe column migrations for existing databases
+    def ensure_column(table, column, col_type):
+        try:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+
+    ensure_column('users', 'ward', 'TEXT')
+    ensure_column('users', 'consumer_number', 'TEXT')
+    ensure_column('users', 'points', 'INTEGER DEFAULT 120')
+    ensure_column('users', 'level', 'INTEGER DEFAULT 1')
+    ensure_column('complaints', 'ward', 'TEXT DEFAULT "Ward 1 (Ashok Chowk)"')
+    ensure_column('complaints', 'category', 'TEXT DEFAULT "General"')
+    ensure_column('complaints', 'priority', 'TEXT DEFAULT "medium"')
+    ensure_column('complaints', 'assigned_officer', 'TEXT')
+    ensure_column('complaints', 'officer_note', 'TEXT')
+    ensure_column('complaints', 'attachments', 'TEXT')
+    ensure_column('complaints', 'timeline', 'TEXT')
+    ensure_column('alerts', 'title', 'TEXT DEFAULT "Notice"')
+    ensure_column('alerts', 'description', 'TEXT DEFAULT ""')
+    ensure_column('alerts', 'type', 'TEXT DEFAULT "info"')
+    ensure_column('alerts', 'ward', 'TEXT')
+    ensure_column('alerts', 'issued_by', 'TEXT DEFAULT "SMC"')
+    ensure_column('alerts', 'timestamp', 'INTEGER DEFAULT 0')
+    ensure_column('alerts', 'active', 'INTEGER DEFAULT 1')
+    ensure_column('properties', 'ward', 'TEXT DEFAULT "Ward 1 (Ashok Chowk)"')
+    ensure_column('properties', 'metadata', 'TEXT DEFAULT "{}"')
+    ensure_column('properties', 'usage_history', 'TEXT DEFAULT "[]"')
+    ensure_column('properties', 'bills', 'TEXT DEFAULT "[]"')
+    ensure_column('properties', 'requests', 'TEXT DEFAULT "[]"')
+    ensure_column('properties', 'documents', 'TEXT DEFAULT "[]"')
+
     conn.commit()
     conn.close()
-    print("SQLite Database initialized successfully.")
+    print("SQLite Database initialized and migrated successfully.")
 
 if __name__ == '__main__':
     init_db()
