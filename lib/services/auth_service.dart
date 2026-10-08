@@ -30,10 +30,18 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // ── Demo accounts (used when backend is unreachable) ────────────────────
+  static const Map<String, Map<String, dynamic>> _demoAccounts = {
+    '9999999999': {'password': 'admin123', 'name': 'Admin Demo', 'role': 'admin', 'id': 'demo-admin-001'},
+    '9000000000': {'password': 'citizen123', 'name': 'Ramesh Patil', 'role': 'citizen', 'id': 'demo-citizen-001'},
+    '8888888888': {'password': 'demo1234', 'name': 'Priya Kulkarni', 'role': 'citizen', 'id': 'demo-citizen-002'},
+  };
+
   Future<bool> login(String phone, String password) async {
     _isLoading = true;
     notifyListeners();
 
+    // ── 1. Try online login ─────────────────────────────────────────────────
     try {
       final response = await ApiClient.post('/auth/login', body: {
         'phone': phone.trim(),
@@ -66,8 +74,34 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       }
+
+      // Backend returned an error (e.g. 401 wrong password) — don't fall to demo
+      if (response.statusCode == 401 || response.statusCode == 400) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
-      if (kDebugMode) print('Online login error: $e. Falling back to offline verify.');
+      // Network unreachable → fall through to demo mode
+      if (kDebugMode) print('[AuthService] Backend unreachable: $e → trying demo mode');
+    }
+
+    // ── 2. Demo / Offline fallback ──────────────────────────────────────────
+    final demo = _demoAccounts[phone.trim()];
+    if (demo != null && demo['password'] == password.trim()) {
+      _currentUser = UserModel(
+        id: demo['id'] as String,
+        name: demo['name'] as String,
+        username: phone.trim(),
+        phone: phone.trim(),
+        role: (demo['role'] == 'admin') ? UserRole.admin : UserRole.citizen,
+        jalPoints: 250,
+        wardNumber: 4,
+      );
+      await _saveUser();
+      _isLoading = false;
+      notifyListeners();
+      return true;
     }
 
     _isLoading = false;

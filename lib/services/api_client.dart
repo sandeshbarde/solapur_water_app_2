@@ -5,10 +5,19 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
-  static const String _defaultUrl = 'http://10.0.2.2:5000'; // Standard Android Emulator to host loopback
-  static const String baseUrl = String.fromEnvironment('BACKEND_BASE_URL', defaultValue: _defaultUrl);
+  // Override with: flutter run --dart-define=BACKEND_BASE_URL=http://192.168.1.x:5000
+  static const String _envUrl = String.fromEnvironment('BACKEND_BASE_URL', defaultValue: '');
 
-  static final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  static String get baseUrl {
+    if (_envUrl.isNotEmpty) return _envUrl;
+    // kIsWeb, Windows, Linux, macOS → localhost
+    if (kIsWeb || !Platform.isAndroid) return 'http://localhost:5000';
+    // Android Emulator → 10.0.2.2 (host loopback)
+    // Physical Android device → change BACKEND_BASE_URL to your PC's LAN IP
+    return 'http://10.0.2.2:5000';
+  }
+
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
   static String? _cachedToken;
 
   static Future<String?> getToken() async {

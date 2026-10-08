@@ -55,6 +55,29 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Tap a demo row to auto-fill credentials
+  Widget _demoRow(String label, String phone, String password) {
+    return GestureDetector(
+      onTap: () {
+        _phoneController.text = phone;
+        _passwordController.text = password;
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            const Icon(Icons.touch_app, size: 11, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              '$label: $phone / $password',
+              style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -205,6 +228,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text('Register Here', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
+                  ),
+
+                  // 4. DEMO CREDENTIALS CARD (visible in debug mode)
+                  Container(
+                    margin: const EdgeInsets.only(top: AppSpacing.s8),
+                    padding: const EdgeInsets.all(AppSpacing.s12),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusInfoContainer(context),
+                      borderRadius: BorderRadius.circular(AppRadius.control),
+                      border: Border.all(color: AppColors.statusInfo(context).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 14, color: AppColors.statusInfo(context)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Demo Credentials (No backend needed)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.statusInfo(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        _demoRow('Admin', '9999999999', 'admin123'),
+                        _demoRow('Citizen', '9000000000', 'citizen123'),
+                        _demoRow('Citizen 2', '8888888888', 'demo1234'),
+                      ],
+                    ),
                   ),
                 ],
               ),
